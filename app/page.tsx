@@ -9,9 +9,10 @@ function describeError(reason: unknown): string {
 export default async function Home() {
   const supabase = await createClient()
 
-  const [authRes, storageRes] = await Promise.allSettled([
+  const [authRes, storageRes, userRes] = await Promise.allSettled([
     supabase.auth.getSession(),
     supabase.storage.listBuckets(),
+    supabase.auth.getUser(),
   ])
 
   const auth = authRes.status === 'fulfilled'
@@ -26,6 +27,8 @@ export default async function Home() {
       }
     : { ok: false, error: describeError(storageRes.reason), buckets: [] as Bucket[] }
 
+  const user = userRes.status === 'fulfilled' ? userRes.value.data.user : null
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const maskedUrl = url ? `${url.slice(0, 30)}…` : '(unset)'
 
@@ -35,6 +38,22 @@ export default async function Home() {
         <h1 className="text-2xl font-bold text-gray-900">
           Next.js × Vercel × Supabase
         </h1>
+
+        {user && (
+          <section className="flex items-center justify-between bg-gray-50 rounded px-4 py-3 -mt-2">
+            <p className="font-mono text-sm text-gray-800">
+              Logged in as <span className="font-semibold">{user.email}</span>
+            </p>
+            <form action="/auth/signout" method="post">
+              <button
+                type="submit"
+                className="text-sm bg-gray-900 text-white rounded px-3 py-1.5 hover:bg-gray-800"
+              >
+                Sign out
+              </button>
+            </form>
+          </section>
+        )}
 
         <section>
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
@@ -56,7 +75,9 @@ export default async function Home() {
           </h2>
           <p className="font-mono text-sm">
             {auth.ok
-              ? 'session: null (no user logged in)'
+              ? user
+                ? `session: ${user.email}`
+                : 'session: null (no user logged in)'
               : `error: ${auth.error}`}
           </p>
         </section>
@@ -81,6 +102,17 @@ export default async function Home() {
             </p>
           )}
         </section>
+
+        {!user && (
+          <div className="flex gap-4 pt-4 border-t border-gray-100 text-sm">
+            <a href="/login" className="text-gray-900 underline">
+              Log in
+            </a>
+            <a href="/signup" className="text-gray-900 underline">
+              Sign up
+            </a>
+          </div>
+        )}
       </div>
     </main>
   )
