@@ -29,7 +29,11 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user && request.nextUrl.pathname.startsWith('/account')) {
+  if (
+    !user &&
+    (request.nextUrl.pathname.startsWith('/account') ||
+      request.nextUrl.pathname.startsWith('/documents'))
+  ) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

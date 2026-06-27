@@ -41,6 +41,7 @@ npx vercel --prod         # 直接部署到生产
 | `/signup` | Server + Client form | 注册（Server Action + `useActionState`） |
 | `/login` | Server + Client form | 登录，支持 `?error=verification_failed` |
 | `/account` | Server | **受保护页**，未登录由 middleware 跳 `/login` |
+| `/documents` | Server | **受保护页**（M3 文档管理），列文档 + 新建/删除 |
 | `/auth/callback` | Route Handler GET | 邮箱验证 `code` 换 session |
 | `/auth/signout` | Route Handler POST | 登出 → 跳 `/` |
 
@@ -63,6 +64,13 @@ npx vercel --prod         # 直接部署到生产
 ### `getURL()` (`lib/utils.ts`)
 
 构建邮件回调链接用。优先级：`NEXT_PUBLIC_SITE_URL` → `NEXT_PUBLIC_VERCEL_URL` → `http://localhost:3000`。本地开发可不设。
+
+### 文档管理流程（M3）
+
+1. `/documents` 是 Server Component，从 `documents` 表 `select` 当前用户的所有记录（RLS 自动过滤）
+2. 新建走 `createDocument` Server Action（`app/documents/actions.ts`）：插入 document → `recursiveCharSplit` chunk → `embedChunks`（含 3 次重试）→ 批量 insert chunks。任一中间步骤失败，best-effort 删除已建的 document（不保证事务性）
+3. 删除走 `deleteDocument` Server Action（同样文件），传 `id` via hidden input；chunks 通过 `on delete cascade` 自动清理
+4. **必须用 `lib/supabase/server.ts`（anon + user JWT），走 RLS**；不要在这里用 `lib/supabase/admin.ts`（会绕过 RLS）
 
 ## 环境变量
 

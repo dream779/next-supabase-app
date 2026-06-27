@@ -36,9 +36,14 @@ export default async function AccountPage() {
         </section>
 
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <Link href="/" className="text-sm text-gray-600 underline">
-            Home
-          </Link>
+          <div className="flex gap-4 text-sm">
+            <Link href="/" className="text-gray-600 underline">
+              Home
+            </Link>
+            <Link href="/documents" className="text-gray-900 underline">
+              My documents →
+            </Link>
+          </div>
           <form action="/auth/signout" method="post">
             <button
               type="submit"
