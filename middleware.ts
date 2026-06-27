@@ -31,8 +31,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  response.headers.set('x-pathname', request.nextUrl.pathname)
-
   const PROTECTED_PREFIXES = ['/documents', '/account']
   if (
     !user &&
