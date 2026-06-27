@@ -27,15 +27,22 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  // getSession 读 cookie, 0 RTT. 只在需要做重定向判断时才查, 其他路径直接放行
   const PROTECTED_PREFIXES = ['/documents', '/account']
-  if (
-    !user &&
-    PROTECTED_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p))
-  ) {
+  const isProtected = PROTECTED_PREFIXES.some((p) =>
+    request.nextUrl.pathname.startsWith(p),
+  )
+
+  if (!isProtected) {
+    return response
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user ?? null
+
+  if (!user) {
     const next = request.nextUrl.pathname + request.nextUrl.search
     return NextResponse.redirect(
       new URL(`/login?next=${encodeURIComponent(next)}`, request.url),

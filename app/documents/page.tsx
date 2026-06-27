@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSession } from '@/lib/supabase/server'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { deleteDocument } from './actions'
 import { NewDocumentForm } from './new-document-form'
@@ -22,10 +23,7 @@ function formatDate(iso: string): string {
 }
 
 export default async function DocumentsPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSession()
 
   // middleware 已保证有 user, 这里双保险
   if (!user) {
@@ -36,29 +34,6 @@ export default async function DocumentsPage() {
     )
   }
 
-  const { data: docs, error } = await supabase
-    .from('documents')
-    .select('id, title, source, created_at')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="max-w-md w-full bg-white rounded-lg shadow p-8 space-y-4">
-          <h1 className="text-xl font-bold text-red-600">加载失败</h1>
-          <p className="text-sm text-gray-700 font-mono break-all">
-            {error.message}
-          </p>
-          <Link href="/account" className="text-sm text-gray-900 underline">
-            ← 返回个人中心
-          </Link>
-        </div>
-      </main>
-    )
-  }
-
-  const list = (docs ?? []) as DocumentRow[]
-
   return (
     <main className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -66,45 +41,84 @@ export default async function DocumentsPage() {
 
         <NewDocumentForm />
 
-        <section className="bg-white rounded-lg shadow p-6 space-y-3">
-          <h2 className="text-lg font-semibold text-gray-900">
-            已保存文档（{list.length}）
-          </h2>
-
-          {list.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              还没有文档。在上方新建一个开始使用吧。
-            </p>
-          ) : (
-            <ul className="divide-y divide-gray-100">
-              {list.map((doc) => (
-                <li
-                  key={doc.id}
-                  className="flex items-center justify-between py-3 gap-4"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-900 truncate">
-                      {doc.title}
-                    </p>
-                    <p className="text-xs text-gray-500 font-mono">
-                      {doc.id} · {doc.source} · {formatDate(doc.created_at)}
-                    </p>
-                  </div>
-                  <form action={deleteDocument}>
-                    <input type="hidden" name="id" value={doc.id} />
-                    <button
-                      type="submit"
-                      className="text-sm text-red-600 underline hover:text-red-800"
-                    >
-                      删除
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <Suspense fallback={<DocumentsListSkeleton />}>
+          <DocumentsList />
+        </Suspense>
       </div>
     </main>
+  )
+}
+
+function DocumentsListSkeleton() {
+  return (
+    <section className="bg-white rounded-lg shadow p-6 space-y-3">
+      <h2 className="text-lg font-semibold text-gray-900">已保存文档</h2>
+      <p className="text-sm text-gray-500">加载中…</p>
+    </section>
+  )
+}
+
+async function DocumentsList() {
+  const supabase = await createClient()
+  const { data: docs, error } = await supabase
+    .from('documents')
+    .select('id, title, source, created_at')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    return (
+      <section className="bg-white rounded-lg shadow p-6 space-y-3">
+        <h2 className="text-lg font-semibold text-red-600">加载失败</h2>
+        <p className="text-sm text-gray-700 font-mono break-all">
+          {error.message}
+        </p>
+        <Link href="/account" className="text-sm text-gray-900 underline">
+          ← 返回个人中心
+        </Link>
+      </section>
+    )
+  }
+
+  const list = (docs ?? []) as DocumentRow[]
+
+  return (
+    <section className="bg-white rounded-lg shadow p-6 space-y-3">
+      <h2 className="text-lg font-semibold text-gray-900">
+        已保存文档（{list.length}）
+      </h2>
+
+      {list.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          还没有文档。在上方新建一个开始使用吧。
+        </p>
+      ) : (
+        <ul className="divide-y divide-gray-100">
+          {list.map((doc) => (
+            <li
+              key={doc.id}
+              className="flex items-center justify-between py-3 gap-4"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900 truncate">
+                  {doc.title}
+                </p>
+                <p className="text-xs text-gray-500 font-mono">
+                  {doc.id} · {doc.source} · {formatDate(doc.created_at)}
+                </p>
+              </div>
+              <form action={deleteDocument}>
+                <input type="hidden" name="id" value={doc.id} />
+                <button
+                  type="submit"
+                  className="text-sm text-red-600 underline hover:text-red-800"
+                >
+                  删除
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

@@ -30,11 +30,8 @@ type Match = {
 }
 
 async function retrieveContext(question: string, matchCount = 5): Promise<string> {
+  // RLS 兜底: 没有效 JWT 时 match_chunks 拿不到任何行
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return ''
 
   const queryEmbedding = await embedQuery(question)
   const { data, error } = await supabase.rpc('match_chunks', {

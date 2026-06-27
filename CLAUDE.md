@@ -108,3 +108,31 @@ npx vercel --prod         # 直接部署到生产
 - Server Action 返回值配合 React 19 的 `useActionState` + `useFormStatus` 处理 pending 态
 - `lib/supabase/server.ts` 的 `cookies.set` 在 Server Component 内会抛错（已 try/catch 吞掉），只能在 Server Action / Route Handler 里写
 - middleware matcher 已排除 `_next/static`、`_next/image`、`favicon.ico`、常见图片扩展名
+
+## 性能教训（auth & 数据获取）
+
+### `getUser` vs `getSession` 必须分清
+
+| 函数 | 网络 RTT | 用途 |
+|---|---|---|
+| `supabase.auth.getUser()` | **有**（1-2s 到 Supabase auth server 验 JWT 吊销态） | 登录 callback、改密等**安全关键路径** |
+| `supabase.auth.getSession()` | 无（读 cookie + 本地公钥验签，~15ms） | 页面渲染、TopNav、middleware 登录判断 |
+
+**铁律**：页面层（任何 RSC、layout、Server Action 内取 user.email）一律用 `getSession`。`getUser` 全应用一天调不了几次。每次发现页面有卡顿，先 grep `getUser(` 看是不是又用错了。
+
+### RLS 才是真正的安全边界
+
+- API Route / Server Action 里**不要**为安全再 `getUser` 一次。Supabase client 自带 user JWT，RLS `auth.uid()` 自动过滤
+- middleware 用 `getSession` 判断登录态做重定向即可，剩下的交给 RLS
+
+### `React.cache()` 跨不过 middleware
+
+middleware 和 RSC 是不同执行上下文，cache-wrapped 函数两边都调不会合并。如果一个值两边都要，要么写两个调用点，要么把逻辑抽到共享 helper（但仍是两次调用，不是 memo）。
+
+### 慢数据查询 → 用 `<Suspense>` 流式渲染
+
+页壳（TopNav、标题、表单）和数据查询**必须拆成两个组件**，外面包 `<Suspense fallback={<Skeleton/>}>`。shell 立即出现，数据后台流式替换 fallback。**整个 page 都 `await` 等于没用**，用户看到的还是白屏。
+
+### RLS 过滤 + ORDER BY → 加复合索引
+
+`where user_id = auth.uid() order by created_at desc` 是 RAG 列表查询的标准形态，必须加 `(user_id, created_at desc)` 复合索引：B-Tree 前缀过滤 + 物理有序排序，ORDER BY 零成本。每个新的列表查询都问自己一句：要不要加索引？

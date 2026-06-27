@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSession } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { recursiveCharSplit } from '@/lib/chunking'
 import { embedChunks } from '@/lib/embedding'
@@ -16,11 +16,9 @@ export async function createDocument(
   _prev: CreateDocumentState,
   formData: FormData,
 ): Promise<CreateDocumentState> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSession()
   if (!user) return { error: '未登录。' }
+  const supabase = await createClient()
 
   const title = formData.get('title')?.toString().trim() ?? ''
   const content = formData.get('content')?.toString().trim() ?? ''
@@ -86,11 +84,9 @@ export async function createDocument(
 }
 
 export async function deleteDocument(formData: FormData): Promise<void> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSession()
   if (!user) return
+  const supabase = await createClient()
 
   const id = formData.get('id')?.toString()
   if (!id) return

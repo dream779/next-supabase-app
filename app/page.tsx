@@ -1,13 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/supabase/server'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { AuthOverlay } from '@/components/auth-overlay'
 
 export default async function Home() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const user = await getSession()
   const isAuthenticated = !!user
 
   return (
