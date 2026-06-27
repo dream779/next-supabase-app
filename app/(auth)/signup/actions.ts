@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getURL } from '@/lib/utils'
+import { sanitizeNext } from '@/lib/auth/next'
 
 export type SignUpState = {
   ok: boolean
@@ -14,9 +15,10 @@ export async function signUp(
 ): Promise<SignUpState> {
   const email = (formData.get('email') as string)?.trim()
   const password = formData.get('password') as string
+  const next = sanitizeNext(formData.get('next'))
 
   if (!email || !password) {
-    return { ok: false, error: 'Email and password are required.' }
+    return { ok: false, error: '邮箱和密码不能为空。' }
   }
 
   const supabase = await createClient()
@@ -24,7 +26,7 @@ export async function signUp(
     email,
     password,
     options: {
-      emailRedirectTo: `${getURL()}auth/callback?next=/account`,
+      emailRedirectTo: `${getURL()}auth/callback?next=${encodeURIComponent(next)}`,
     },
   })
 

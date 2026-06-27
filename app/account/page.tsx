@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 
 export default async function AccountPage() {
   const supabase = await createClient()
@@ -9,17 +8,17 @@ export default async function AccountPage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/login')
+    redirect('/login?next=%2Faccount')
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="max-w-md w-full bg-white rounded-lg shadow p-8 space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Account</h1>
+    <main className="p-6">
+      <div className="max-w-md mx-auto bg-white rounded-lg shadow p-8 space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">个人中心</h1>
 
         <section className="space-y-2">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Signed in as
+            已登录邮箱
           </h2>
           <p className="font-mono text-sm text-gray-800 break-all">
             {user.email}
@@ -34,25 +33,6 @@ export default async function AccountPage() {
             {user.id}
           </p>
         </section>
-
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex gap-4 text-sm">
-            <Link href="/" className="text-gray-600 underline">
-              Home
-            </Link>
-            <Link href="/documents" className="text-gray-900 underline">
-              My documents →
-            </Link>
-          </div>
-          <form action="/auth/signout" method="post">
-            <button
-              type="submit"
-              className="bg-gray-900 text-white rounded px-4 py-2 hover:bg-gray-800"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
       </div>
     </main>
   )
