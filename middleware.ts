@@ -29,10 +29,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const PROTECTED_PREFIXES = ['/account', '/documents', '/chat']
   if (
     !user &&
-    (request.nextUrl.pathname.startsWith('/account') ||
-      request.nextUrl.pathname.startsWith('/documents'))
+    PROTECTED_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p))
   ) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

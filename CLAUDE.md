@@ -42,6 +42,8 @@ npx vercel --prod         # 直接部署到生产
 | `/login` | Server + Client form | 登录，支持 `?error=verification_failed` |
 | `/account` | Server | **受保护页**，未登录由 middleware 跳 `/login` |
 | `/documents` | Server | **受保护页**（M3 文档管理），列文档 + 新建/删除 |
+| `/chat` | Server + Client | **受保护页**（M4 流式问答），用 `useChat` 调 `/api/chat` |
+| `/api/chat` | Route Handler POST | M4 RAG 流式 endpoint：embed query → `match_chunks` → DashScope `qwen-plus` |
 | `/auth/callback` | Route Handler GET | 邮箱验证 `code` 换 session |
 | `/auth/signout` | Route Handler POST | 登出 → 跳 `/` |
 
@@ -71,6 +73,14 @@ npx vercel --prod         # 直接部署到生产
 2. 新建走 `createDocument` Server Action（`app/documents/actions.ts`）：插入 document → `recursiveCharSplit` chunk → `embedChunks`（含 3 次重试）→ 批量 insert chunks。任一中间步骤失败，best-effort 删除已建的 document（不保证事务性）
 3. 删除走 `deleteDocument` Server Action（同样文件），传 `id` via hidden input；chunks 通过 `on delete cascade` 自动清理
 4. **必须用 `lib/supabase/server.ts`（anon + user JWT），走 RLS**；不要在这里用 `lib/supabase/admin.ts`（会绕过 RLS）
+
+### 问答流程（M4）
+
+1. 浏览器 `/chat` 是 Client Component (`useChat`)，POST `/api/chat` 发消息
+2. Route Handler 做 3 步: `embedQuery(question)` → RPC `match_chunks` 拿 top-5 → 拼到 system prompt
+3. `streamText` 调 DashScope `qwen-plus`，流回 `UIMessage` 给客户端
+4. **必须用 `lib/supabase/server.ts`** (走 RLS, user 自动隔离); embed 走 ARK (`lib/embedding.ts`), LLM 走 DashScope
+5. 没装 `@ai-sdk/react` 的话 `useChat` 不可用
 
 ## 环境变量
 
