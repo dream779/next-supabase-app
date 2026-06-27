@@ -29,7 +29,7 @@ const dashscope = createOpenAICompatible({
 
 const TEST_USER_ID = process.env.M1_TEST_USER_ID
 if (!TEST_USER_ID) {
-  console.error('Set M1_TEST_USER_ID in .env.local to an existing auth.users.id')
+  console.error('请在 .env.local 中将 M1_TEST_USER_ID 设置为已有的 auth.users.id')
   process.exit(1)
 }
 
@@ -58,7 +58,7 @@ const TEST_QUERY = 'App Router 怎么处理 loading 状态？'
 
 async function main() {
   const supabase = createAdminClient()
-  console.log('✓ Admin client created')
+  console.log('✓ 已创建管理员客户端')
 
   const { data: doc, error: docErr } = await supabase
     .from('documents')
@@ -66,14 +66,14 @@ async function main() {
     .select()
     .single()
 
-  if (docErr || !doc) throw new Error(`Insert document failed: ${docErr?.message}`)
-  console.log(`✓ Document inserted: ${doc.id}`)
+  if (docErr || !doc) throw new Error(`插入文档失败：${docErr?.message}`)
+  console.log(`✓ 已插入文档：${doc.id}`)
 
   const rawChunks = recursiveCharSplit(TEST_DOCUMENT.content)
-  console.log(`✓ Chunked into ${rawChunks.length} pieces`)
+  console.log(`✓ 已切分为 ${rawChunks.length} 段`)
 
   const embedded = await embedChunks(rawChunks)
-  console.log(`✓ Embedded ${embedded.length} chunks, dim=${embedded[0].embedding.length}`)
+  console.log(`✓ 已为 ${embedded.length} 个分块生成向量，维度=${embedded[0].embedding.length}`)
 
   const { error: chunksErr } = await supabase.from('chunks').insert(
     embedded.map((c) => ({
@@ -85,11 +85,11 @@ async function main() {
     }))
   )
 
-  if (chunksErr) throw new Error(`Insert chunks failed: ${chunksErr.message}`)
-  console.log(`✓ ${embedded.length} chunks inserted`)
+  if (chunksErr) throw new Error(`插入分块失败：${chunksErr.message}`)
+  console.log(`✓ 已插入 ${embedded.length} 个分块`)
 
   const queryEmbedding = await embedQuery(TEST_QUERY)
-  console.log(`✓ Query embedded`)
+  console.log(`✓ 已生成查询向量`)
 
   type Match = {
     id: string
@@ -104,14 +104,14 @@ async function main() {
     match_count: 3,
   })
 
-  if (rpcErr) throw new Error(`RPC failed: ${rpcErr.message}`)
+  if (rpcErr) throw new Error(`RPC 失败：${rpcErr.message}`)
   const matchList = (matches ?? []) as Match[]
-  console.log(`\n📚 Top-3 retrieved chunks:`)
+  console.log(`\n📚 检索到的 Top-3 分块：`)
   for (const m of matchList) {
     console.log(`  [sim=${m.similarity.toFixed(3)}] ${m.content.slice(0, 80)}...`)
   }
 
-  console.log(`\n🤖 Generating answer for: "${TEST_QUERY}"\n`)
+  console.log(`\n🤖 正在为问题生成答案："${TEST_QUERY}"\n`)
   const context = matchList
     .map((m, i) => `[${i + 1}] ${m.content}`)
     .join('\n\n')
@@ -128,10 +128,10 @@ async function main() {
   process.stdout.write('\n')
 
   await supabase.from('documents').delete().eq('id', doc.id)
-  console.log(`\n✓ Cleanup: deleted test document ${doc.id}`)
+  console.log(`\n✓ 清理：已删除测试文档 ${doc.id}`)
 }
 
 main().catch((err) => {
-  console.error('\n❌ M1 verification failed:', err)
+  console.error('\n❌ M1 验证失败：', err)
   process.exit(1)
 })

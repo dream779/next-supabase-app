@@ -31,7 +31,7 @@ export default async function DocumentsPage() {
   if (!user) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <p className="text-gray-600">Please sign in to view documents.</p>
+        <p className="text-gray-600">请登录后查看文档。</p>
       </main>
     )
   }
@@ -45,12 +45,12 @@ export default async function DocumentsPage() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="max-w-md w-full bg-white rounded-lg shadow p-8 space-y-4">
-          <h1 className="text-xl font-bold text-red-600">Load failed</h1>
+          <h1 className="text-xl font-bold text-red-600">加载失败</h1>
           <p className="text-sm text-gray-700 font-mono break-all">
             {error.message}
           </p>
           <Link href="/account" className="text-sm text-gray-900 underline">
-            ← Back to account
+            ← 返回个人中心
           </Link>
         </div>
       </main>
@@ -62,18 +62,18 @@ export default async function DocumentsPage() {
   return (
     <main className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">My documents</h1>
+        <h1 className="text-2xl font-bold text-gray-900">我的文档</h1>
 
         <NewDocumentForm />
 
         <section className="bg-white rounded-lg shadow p-6 space-y-3">
           <h2 className="text-lg font-semibold text-gray-900">
-            Saved documents ({list.length})
+            已保存文档（{list.length}）
           </h2>
 
           {list.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No documents yet. Create one above to get started.
+              还没有文档。在上方新建一个开始使用吧。
             </p>
           ) : (
             <ul className="divide-y divide-gray-100">
@@ -96,7 +96,7 @@ export default async function DocumentsPage() {
                       type="submit"
                       className="text-sm text-red-600 underline hover:text-red-800"
                     >
-                      Delete
+                      删除
                     </button>
                   </form>
                 </li>

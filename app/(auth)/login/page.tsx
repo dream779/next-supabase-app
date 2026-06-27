@@ -10,7 +10,7 @@ import {
 
 const ERROR_MESSAGES: Record<string, string> = {
   verification_failed:
-    'Email verification link is invalid or has expired. Please try signing up again or contact support.',
+    '邮箱验证链接无效或已过期。请重新注册或联系客服。',
 }
 
 type Props = {

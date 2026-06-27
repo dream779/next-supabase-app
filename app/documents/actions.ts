@@ -20,13 +20,13 @@ export async function createDocument(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not signed in.' }
+  if (!user) return { error: '未登录。' }
 
   const title = formData.get('title')?.toString().trim() ?? ''
   const content = formData.get('content')?.toString().trim() ?? ''
 
-  if (!title) return { error: 'Title is required.' }
-  if (!content) return { error: 'Content is required.' }
+  if (!title) return { error: '标题不能为空。' }
+  if (!content) return { error: '内容不能为空。' }
 
   // 1. Insert document (RLS 用 auth.uid() 链校验 user_id)
   const { data: doc, error: docErr } = await supabase
@@ -35,14 +35,14 @@ export async function createDocument(
     .select()
     .single()
   if (docErr || !doc) {
-    return { error: `Insert document failed: ${docErr?.message ?? 'unknown'}` }
+    return { error: `创建文档失败：${docErr?.message ?? '未知错误'}` }
   }
 
   // 2. Chunk
   const rawChunks = recursiveCharSplit(content)
   if (rawChunks.length === 0) {
     await supabase.from('documents').delete().eq('id', doc.id)
-    return { error: 'Content produced no chunks.' }
+    return { error: '内容未能切分为任何分块。' }
   }
 
   // 3. Embed (内置 3 次重试)
@@ -52,14 +52,14 @@ export async function createDocument(
   } catch (err) {
     await supabase.from('documents').delete().eq('id', doc.id)
     return {
-      error: `Embedding failed: ${err instanceof Error ? err.message : String(err)}`,
+      error: `生成向量失败：${err instanceof Error ? err.message : String(err)}`,
     }
   }
 
   // 4. Insert chunks (RLS 通过 document_id → documents.user_id 链校验)
   embedded.forEach((c, i) => {
     if (!Array.isArray(c.embedding) || c.embedding.length === 0) {
-      throw new Error(`Chunk ${i} has invalid embedding`)
+      throw new Error(`分块 ${i} 的向量无效`)
     }
   })
   const { error: chunksErr } = await supabase.from('chunks').insert(
@@ -73,7 +73,7 @@ export async function createDocument(
   )
   if (chunksErr) {
     await supabase.from('documents').delete().eq('id', doc.id)
-    return { error: `Insert chunks failed: ${chunksErr.message}` }
+    return { error: `插入分块失败：${chunksErr.message}` }
   }
 
   revalidatePath('/documents')

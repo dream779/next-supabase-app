@@ -29,7 +29,7 @@ import { embedQuery } from '../lib/embedding'
 
 const PASSWORD = process.env.SUPABASE_TEST_USER_PASSWORD
 if (!PASSWORD) {
-  console.error('Set SUPABASE_TEST_USER_PASSWORD in .env.local')
+  console.error('请在 .env.local 中设置 SUPABASE_TEST_USER_PASSWORD')
   process.exit(1)
 }
 const TEST_PASSWORD: string = PASSWORD
@@ -58,7 +58,7 @@ async function createTestUser(
     password: TEST_PASSWORD,
     email_confirm: true,
   })
-  if (error || !data.user) throw new Error(`createUser(${email}) failed: ${error?.message}`)
+  if (error || !data.user) throw new Error(`createUser(${email}) 失败：${error?.message}`)
 
   const client = createClient(URL, ANON, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -67,20 +67,20 @@ async function createTestUser(
     email,
     password: TEST_PASSWORD,
   })
-  if (signInErr) throw new Error(`signInWithPassword(${email}) failed: ${signInErr.message}`)
+  if (signInErr) throw new Error(`signInWithPassword(${email}) 失败：${signInErr.message}`)
 
   return { id: data.user.id, email, client }
 }
 
 async function main() {
   const admin = createAdminClient()
-  console.log('✓ Admin client created')
+  console.log('✓ 已创建管理员客户端')
 
   // 1. Create 2 test users
   const userA = await createTestUser(admin, USER_A_EMAIL)
   const userB = await createTestUser(admin, USER_B_EMAIL)
-  console.log(`✓ Created user A: ${userA.id}`)
-  console.log(`✓ Created user B: ${userB.id}`)
+  console.log(`✓ 已创建用户 A：${userA.id}`)
+  console.log(`✓ 已创建用户 B：${userB.id}`)
 
   try {
     // 2. A inserts a document
@@ -89,8 +89,8 @@ async function main() {
       .insert({ user_id: userA.id, title: TEST_DOC_TITLE })
       .select()
       .single()
-    if (docErr || !doc) throw new Error(`A insert document failed: ${docErr?.message}`)
-    console.log(`✓ A inserted document: ${doc.id}`)
+    if (docErr || !doc) throw new Error(`用户 A 插入文档失败：${docErr?.message}`)
+    console.log(`✓ 用户 A 已插入文档：${doc.id}`)
 
     // A inserts chunk with real embedding (zero vector breaks pgvector cosine)
     const chunkEmbedding = await embedQuery(TEST_DOC_CONTENT)
@@ -101,14 +101,14 @@ async function main() {
       chunk_index: 0,
       token_count: 10,
     })
-    if (chunkErr) throw new Error(`A insert chunk failed: ${chunkErr.message}`)
-    console.log(`✓ A inserted chunk for A's document (real embedding, dim=${chunkEmbedding.length})`)
+    if (chunkErr) throw new Error(`用户 A 插入分块失败：${chunkErr.message}`)
+    console.log(`✓ 用户 A 已为自己的文档插入分块（真实向量，维度=${chunkEmbedding.length}）`)
 
     // 3. B sees no documents
     const { data: bDocs, error: bSelErr } = await userB.client.from('documents').select('*')
-    if (bSelErr) throw new Error(`B select documents failed: ${bSelErr?.message}`)
-    assert.equal(bDocs.length, 0, 'B should not see A documents')
-    console.log(`✓ B SELECT documents → 0 rows (isolated)`)
+    if (bSelErr) throw new Error(`用户 B 查询文档失败：${bSelErr?.message}`)
+    assert.equal(bDocs.length, 0, '用户 B 不应看到用户 A 的文档')
+    console.log(`✓ 用户 B 查询 documents → 0 行（已隔离）`)
 
     // 4. B cannot insert chunk for A's document
     const { error: bInsertErr } = await userB.client.from('chunks').insert({
@@ -118,15 +118,15 @@ async function main() {
       chunk_index: 99,
       token_count: 1,
     })
-    assert.ok(bInsertErr, 'B should be blocked from inserting chunk on A document')
-    console.log(`✓ B INSERT chunk on A's document → blocked (${bInsertErr.code ?? 'no code'})`)
+    assert.ok(bInsertErr, '应阻止用户 B 在用户 A 的文档上插入分块')
+    console.log(`✓ 用户 B 在用户 A 的文档上插入分块 → 已被阻止（${bInsertErr.code ?? '无错误码'}）`)
 
     // 5. A sees own chunk
     const { data: aChunks, error: aChunkSelErr } = await userA.client.from('chunks').select('*')
-    if (aChunkSelErr) throw new Error(`A select chunks failed: ${aChunkSelErr.message}`)
-    assert.equal(aChunks.length, 1, 'A should see own chunk')
+    if (aChunkSelErr) throw new Error(`用户 A 查询分块失败：${aChunkSelErr.message}`)
+    assert.equal(aChunks.length, 1, '用户 A 应能看到自己的分块')
     assert.equal(aChunks[0].document_id, doc.id)
-    console.log(`✓ A SELECT chunks → 1 row (own chunk)`)
+    console.log(`✓ 用户 A 查询 chunks → 1 行（自己的分块）`)
 
     // 6. match_chunks: A gets the chunk, B gets nothing
     const queryEmbedding = await embedQuery(TEST_QUERY)
@@ -134,28 +134,28 @@ async function main() {
       query_embedding: JSON.stringify(queryEmbedding),
       match_count: 5,
     })
-    if (aRpcErr) throw new Error(`A match_chunks failed: ${aRpcErr.message}`)
-    assert.ok((aMatches ?? []).length >= 1, 'A should retrieve at least own chunk via RPC')
-    console.log(`✓ A match_chunks → ${aMatches!.length} row(s)`)
+    if (aRpcErr) throw new Error(`用户 A 的 match_chunks 失败：${aRpcErr.message}`)
+    assert.ok((aMatches ?? []).length >= 1, '用户 A 应能通过 RPC 至少检索到自己的一个分块')
+    console.log(`✓ 用户 A 的 match_chunks → ${aMatches!.length} 行`)
 
     const { data: bMatches, error: bRpcErr } = await userB.client.rpc('match_chunks', {
       query_embedding: JSON.stringify(queryEmbedding),
       match_count: 5,
     })
-    if (bRpcErr) throw new Error(`B match_chunks failed: ${bRpcErr.message}`)
-    assert.equal((bMatches ?? []).length, 0, 'B should retrieve 0 rows via RPC')
-    console.log(`✓ B match_chunks → 0 rows (isolated)`)
+    if (bRpcErr) throw new Error(`用户 B 的 match_chunks 失败：${bRpcErr.message}`)
+    assert.equal((bMatches ?? []).length, 0, '用户 B 应通过 RPC 检索到 0 行')
+    console.log(`✓ 用户 B 的 match_chunks → 0 行（已隔离）`)
 
-    console.log('\n🎉 M2 RLS isolation: all assertions passed')
+    console.log('\n🎉 M2 RLS 隔离：所有断言通过')
   } finally {
     // Always delete test users (cascade nukes documents + chunks)
     await admin.auth.admin.deleteUser(userA.id)
     await admin.auth.admin.deleteUser(userB.id)
-    console.log(`✓ Cleaned up test users`)
+    console.log(`✓ 已清理测试用户`)
   }
 }
 
 main().catch((err) => {
-  console.error('\n❌ M2 verification failed:', err)
+  console.error('\n❌ M2 验证失败：', err)
   process.exit(1)
 })

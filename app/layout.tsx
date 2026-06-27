@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Knowledge Base",
+  title: "知识库",
   description: "向你的知识库提问",
 };
 

@@ -17,7 +17,7 @@ function SubmitButton() {
       disabled={pending}
       className="bg-gray-900 text-white rounded px-4 py-2 hover:bg-gray-800 disabled:opacity-50"
     >
-      {pending ? 'Creating...' : 'Create document'}
+      {pending ? '创建中...' : '创建文档'}
     </button>
   )
 }
@@ -36,11 +36,11 @@ export function NewDocumentForm() {
       action={formAction}
       className="space-y-4 bg-white rounded-lg shadow p-6"
     >
-      <h2 className="text-lg font-semibold text-gray-900">New document</h2>
+      <h2 className="text-lg font-semibold text-gray-900">新建文档</h2>
 
       <div className="space-y-1">
         <label htmlFor="title" className="block text-sm text-gray-700">
-          Title
+          标题
         </label>
         <input
           id="title"
@@ -49,13 +49,13 @@ export function NewDocumentForm() {
           required
           maxLength={200}
           className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
-          placeholder="My knowledge note"
+          placeholder="我的知识笔记"
         />
       </div>
 
       <div className="space-y-1">
         <label htmlFor="content" className="block text-sm text-gray-700">
-          Content
+          内容
         </label>
         <textarea
           id="content"
@@ -63,7 +63,7 @@ export function NewDocumentForm() {
           required
           rows={8}
           className="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-          placeholder="Paste or type your content here. Long content is auto-chunked."
+          placeholder="在此粘贴或输入内容。较长的内容会自动分块。"
         />
       </div>
 
@@ -71,7 +71,7 @@ export function NewDocumentForm() {
 
       {state.success && state.chunkCount !== undefined && (
         <p className="text-sm text-green-700">
-          ✓ Created with {state.chunkCount} chunk(s)
+          ✓ 已创建，共 {state.chunkCount} 个分块
         </p>
       )}
 

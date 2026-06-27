@@ -27,7 +27,7 @@ export default async function AccountPage() {
 
         <section className="space-y-2">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            User ID
+            用户 ID
           </h2>
           <p className="font-mono text-xs text-gray-500 break-all">
             {user.id}
