@@ -1,25 +1,14 @@
 import { createClient, getSession } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { deleteDocument } from './actions'
 import { NewDocumentForm } from './new-document-form'
+import { DocumentRow } from './document-row'
 
-type DocumentRow = {
+type DbDocument = {
   id: string
   title: string
   source: string
   created_at: string
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 export default async function DocumentsPage() {
@@ -79,7 +68,7 @@ async function DocumentsList() {
     )
   }
 
-  const list = (docs ?? []) as DocumentRow[]
+  const list = (docs ?? []) as DbDocument[]
 
   return (
     <section className="bg-white rounded-lg shadow p-6 space-y-3">
@@ -98,23 +87,12 @@ async function DocumentsList() {
               key={doc.id}
               className="flex items-center justify-between py-3 gap-4"
             >
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-gray-900 truncate">
-                  {doc.title}
-                </p>
-                <p className="text-xs text-gray-500 font-mono">
-                  {doc.id} · {doc.source} · {formatDate(doc.created_at)}
-                </p>
-              </div>
-              <form action={deleteDocument}>
-                <input type="hidden" name="id" value={doc.id} />
-                <button
-                  type="submit"
-                  className="text-sm text-red-600 underline hover:text-red-800"
-                >
-                  删除
-                </button>
-              </form>
+              <DocumentRow
+                id={doc.id}
+                title={doc.title}
+                source={doc.source}
+                createdAt={doc.created_at}
+              />
             </li>
           ))}
         </ul>

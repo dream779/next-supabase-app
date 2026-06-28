@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { AlertDialog as AlertDialogPrimitive } from '@base-ui/react/alert-dialog'
 import { cn } from '@/lib/utils'
+import { buttonVariants } from '@/components/ui/button'
 
 function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
@@ -94,6 +95,32 @@ function AlertDialogDescription({
   )
 }
 
+function AlertDialogAction({
+  className,
+  ...props
+}: AlertDialogPrimitive.Close.Props) {
+  return (
+    <AlertDialogPrimitive.Close
+      data-slot="alert-dialog-action"
+      className={cn(buttonVariants({ variant: 'destructive' }), className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogCancel({
+  className,
+  ...props
+}: AlertDialogPrimitive.Close.Props) {
+  return (
+    <AlertDialogPrimitive.Close
+      data-slot="alert-dialog-cancel"
+      className={cn(buttonVariants({ variant: 'outline' }), className)}
+      {...props}
+    />
+  )
+}
+
 export {
   AlertDialog,
   AlertDialogTrigger,
@@ -102,4 +129,6 @@ export {
   AlertDialogFooter,
   AlertDialogTitle,
   AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
 }
