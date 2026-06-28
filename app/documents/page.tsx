@@ -1,7 +1,7 @@
 import { createClient, getSession } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { NewDocumentForm } from './new-document-form'
+import { NewDocumentDialog } from './new-document-dialog'
 import { DocumentRow } from './document-row'
 
 type DbDocument = {
@@ -26,9 +26,10 @@ export default async function DocumentsPage() {
   return (
     <main className="p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">我的文档</h1>
-
-        <NewDocumentForm />
+        <header className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">我的文档</h1>
+          <NewDocumentDialog />
+        </header>
 
         <Suspense fallback={<DocumentsListSkeleton />}>
           <DocumentsList />
@@ -78,7 +79,7 @@ async function DocumentsList() {
 
       {list.length === 0 ? (
         <p className="text-sm text-gray-500">
-          还没有文档。在上方新建一个开始使用吧。
+          还没有文档。点击右上角“上传文档”开始添加吧。
         </p>
       ) : (
         <ul className="divide-y divide-gray-100">
@@ -90,7 +91,6 @@ async function DocumentsList() {
               <DocumentRow
                 id={doc.id}
                 title={doc.title}
-                source={doc.source}
                 createdAt={doc.created_at}
               />
             </li>

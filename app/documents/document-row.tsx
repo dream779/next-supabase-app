@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useFormStatus } from 'react-dom'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,31 +26,41 @@ function formatDate(iso: string): string {
   })
 }
 
+function DeleteButton() {
+  const { pending } = useFormStatus()
+  return (
+    <AlertDialogAction type="submit" disabled={pending}>
+      {pending ? '删除中...' : '确认删除'}
+    </AlertDialogAction>
+  )
+}
+
 export function DocumentRow({
   id,
   title,
-  source,
   createdAt,
 }: {
   id: string
   title: string
-  source: string
   createdAt: string
 }) {
   const [open, setOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   return (
-    <div className="flex items-center justify-between gap-4 w-full">
+    <div
+      className={`flex items-center justify-between gap-4 w-full transition-opacity ${
+        isDeleting ? 'opacity-50 pointer-events-none' : ''
+      }`}
+    >
       <div className="min-w-0 flex-1">
         <p className="font-medium text-gray-900 truncate">{title}</p>
-        <p className="text-xs text-gray-500 font-mono">
-          {id} · {source} · {formatDate(createdAt)}
-        </p>
+        <p className="text-xs text-gray-500">{formatDate(createdAt)}</p>
       </div>
 
       <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogTrigger className="text-sm text-red-600 underline hover:text-red-800 cursor-pointer">
-          删除
+        <AlertDialogTrigger className="text-sm text-red-600 underline hover:text-red-800 cursor-pointer disabled:no-underline disabled:opacity-50">
+          {isDeleting ? '删除中...' : '删除'}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -60,9 +71,15 @@ export function DocumentRow({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <form action={deleteDocument} onSubmit={() => setOpen(false)}>
+            <form
+              action={deleteDocument}
+              onSubmit={() => {
+                setOpen(false)
+                setIsDeleting(true)
+              }}
+            >
               <input type="hidden" name="id" value={id} />
-              <AlertDialogAction type="submit">确认删除</AlertDialogAction>
+              <DeleteButton />
             </form>
           </AlertDialogFooter>
         </AlertDialogContent>
