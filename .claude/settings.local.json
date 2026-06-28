@@ -5,10 +5,10 @@
       "Bash(pnpm tsc *)",
       "Bash(pnpm lint *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)",
       "Bash(pnpm typecheck *)",
       "Bash(pnpm tsx *)",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(git commit *)"
     ]
   }
 }

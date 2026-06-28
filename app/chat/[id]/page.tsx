@@ -32,8 +32,8 @@ export default async function ConversationPage({
 
   if (msgsErr) {
     return (
-      <main className="flex-1 p-6 min-w-0">
-        <p className="text-red-600">加载消息失败：{msgsErr.message}</p>
+      <main className="flex-1 min-w-0 h-full">
+        <p className="text-red-600 mt-12 text-center">加载消息失败：{msgsErr.message}</p>
       </main>
     )
   }
@@ -45,7 +45,7 @@ export default async function ConversationPage({
   }))
 
   return (
-    <main className="flex-1 p-6 min-w-0">
+    <main className="flex-1 min-w-0 h-full">
       <ChatInterface
         key={id}
         conversationId={id}
