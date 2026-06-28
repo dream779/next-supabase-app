@@ -1,7 +1,15 @@
-import { streamText, convertToModelMessages, type UIMessage } from 'ai'
+import {
+  streamText,
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  type UIMessage,
+} from 'ai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { embedQuery } from '@/lib/embedding'
+import { latestUserText, truncateTitle } from '@/lib/chat-helpers'
 
 const dashscope = createOpenAICompatible({
   name: 'dashscope',
@@ -30,7 +38,6 @@ type Match = {
 }
 
 async function retrieveContext(question: string, matchCount = 5): Promise<string> {
-  // RLS 兜底: 没有效 JWT 时 match_chunks 拿不到任何行
   const supabase = await createClient()
 
   const queryEmbedding = await embedQuery(question)
@@ -50,28 +57,104 @@ async function retrieveContext(question: string, matchCount = 5): Promise<string
     .join('\n\n')
 }
 
-function latestUserText(messages: UIMessage[]): string {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i]
-    if (m.role !== 'user') continue
-    return m.parts
-      .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-      .map((p) => p.text)
-      .join('')
-  }
-  return ''
+type ChatBody = {
+  conversationId: string | null
+  messages: UIMessage[]
 }
 
 export async function POST(req: Request) {
-  const { messages } = (await req.json()) as { messages: UIMessage[] }
-  const question = latestUserText(messages)
-  const context = question ? await retrieveContext(question) : ''
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Response('Unauthorized', { status: 401 })
 
+  const { conversationId, messages } = (await req.json()) as ChatBody
+  const question = latestUserText(messages)
+  if (!question) return new Response('Empty question', { status: 400 })
+
+  const isNew = !conversationId
+
+  // 1. 创建/复用会话
+  let effectiveConvId = conversationId
+  if (isNew) {
+    const { data: conv, error: createErr } = await supabase
+      .from('conversations')
+      .insert({ user_id: user.id, title: null })
+      .select('id')
+      .single()
+    if (createErr || !conv) {
+      console.error('[create conversation] failed:', createErr?.message)
+      return new Response('Create failed', { status: 500 })
+    }
+    effectiveConvId = conv.id
+  }
+
+  // 2. 存用户消息（RLS 兜底：conversation 不属于 user → 403）
+  const { error: userMsgErr } = await supabase.from('messages').insert({
+    conversation_id: effectiveConvId,
+    role: 'user',
+    content: question,
+  })
+  if (userMsgErr) {
+    if (/row-level security/i.test(userMsgErr.message)) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    console.error('[insert user message] failed:', userMsgErr.message)
+    return new Response('Persist failed', { status: 500 })
+  }
+
+  // 3. RAG 检索
+  const context = await retrieveContext(question)
+
+  // 4. 流式生成
   const result = streamText({
     model: MODEL,
     system: SYSTEM_PROMPT.replace('{context}', context || '(无)'),
     messages: await convertToModelMessages(messages),
+    abortSignal: req.signal,
   })
 
-  return result.toUIMessageStreamResponse()
+  // 5. 包装流：先发 data-conversation-created 块 → 合并 LLM 流 → 流结束持久化 assistant message
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      if (isNew && effectiveConvId) {
+        writer.write({
+          type: 'data-conversation-created',
+          data: { id: effectiveConvId },
+        })
+      }
+      writer.merge(result.toUIMessageStream())
+
+      const fullText = await result.text
+
+      if (effectiveConvId && fullText) {
+        const { error: insertErr } = await supabase.from('messages').insert({
+          conversation_id: effectiveConvId,
+          role: 'assistant',
+          content: fullText,
+        })
+        if (insertErr) {
+          console.error('[insert assistant message] failed:', insertErr.message)
+        }
+
+        if (isNew) {
+          const title = truncateTitle(question)
+          await supabase
+            .from('conversations')
+            .update({ title, updated_at: new Date().toISOString() })
+            .eq('id', effectiveConvId)
+        } else {
+          await supabase
+            .from('conversations')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', effectiveConvId)
+        }
+
+        revalidatePath('/chat')
+        revalidatePath(`/chat/${effectiveConvId}`)
+      }
+    },
+    onError: () => '生成失败，请重试。',
+  })
+
+  return createUIMessageStreamResponse({ stream })
 }

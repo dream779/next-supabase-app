@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 type NavItem = { href: string; label: string; match: (path: string) => boolean }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/', label: '聊天', match: (p) => p === '/' },
+  { href: '/chat', label: '聊天', match: (p) => p.startsWith('/chat') },
   { href: '/documents', label: '文档上传', match: (p) => p.startsWith('/documents') },
 ]
 

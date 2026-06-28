@@ -20,7 +20,7 @@ type Props = {
 export default async function LoginPage({ searchParams }: Props) {
   const params = await searchParams
   const errorMessage = params.error ? ERROR_MESSAGES[params.error] : undefined
-  const next = params.next ?? '/'
+  const next = params.next ?? '/chat'
 
   return (
     <Card className="w-full max-w-md">

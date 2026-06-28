@@ -2,18 +2,50 @@
 
 import { DefaultChatTransport } from 'ai'
 import { useChat } from '@ai-sdk/react'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import type { UIMessage } from 'ai'
 
 type Props = {
+  conversationId?: string | null
+  initialMessages?: UIMessage[]
   isAuthenticated?: boolean
 }
 
-export function ChatInterface({ isAuthenticated = true }: Props) {
+export function ChatInterface({
+  conversationId,
+  initialMessages = [],
+  isAuthenticated = true,
+}: Props) {
+  const router = useRouter()
   const [input, setInput] = useState('')
+  // 新会话时, onData 先缓存 id, 等 status='ready' (server 端持久化已完成) 再跳转
+  const newConvIdRef = useRef<string | null>(null)
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
+    id: conversationId ?? 'new',
+    messages: initialMessages,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: () => ({ conversationId }),
+    }),
+    onData: (dataPart) => {
+      if (dataPart.type === 'data-conversation-created') {
+        newConvIdRef.current = (dataPart.data as { id: string }).id
+      }
+    },
+    onError: (err) => {
+      console.error('[chat] error:', err)
+    },
   })
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (status !== 'ready') return
+    if (conversationId) return
+    const id = newConvIdRef.current
+    if (!id) return
+    router.replace(`/chat/${id}`)
+  }, [status, conversationId, router])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -55,7 +87,8 @@ export function ChatInterface({ isAuthenticated = true }: Props) {
         onSubmit={(e) => {
           e.preventDefault()
           if (!input.trim() || !isAuthenticated || isStreaming) return
-          sendMessage({ text: input })
+          const text = input.trim()
+          sendMessage({ text })
           setInput('')
         }}
         className="border-t p-4 flex gap-2"

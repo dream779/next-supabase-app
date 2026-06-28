@@ -14,7 +14,7 @@ type Props = {
 
 export default async function SignupPage({ searchParams }: Props) {
   const params = await searchParams
-  const next = params.next ?? '/'
+  const next = params.next ?? '/chat'
 
   return (
     <Card className="w-full max-w-md">

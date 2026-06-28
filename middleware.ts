@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
   )
 
   // getSession 读 cookie, 0 RTT. 只在需要做重定向判断时才查, 其他路径直接放行
-  const PROTECTED_PREFIXES = ['/documents', '/account']
+  const PROTECTED_PREFIXES = ['/documents', '/account', '/chat']
   const isProtected = PROTECTED_PREFIXES.some((p) =>
     request.nextUrl.pathname.startsWith(p),
   )
