@@ -43,7 +43,7 @@ npx vercel --prod         # 直接部署到生产
 | `/account` | Server | **受保护页**，未登录由 middleware 跳 `/login` |
 | `/documents` | Server | **受保护页**（M3 文档管理），列文档 + 新建/删除 |
 | `/chat` | Server + Client | **受保护页**（M4 流式问答），用 `useChat` 调 `/api/chat` |
-| `/api/chat` | Route Handler POST | M4 RAG 流式 endpoint：embed query → `match_chunks` → DashScope `qwen-plus` |
+| `/api/chat` | Route Handler POST | M4 RAG 流式 endpoint：embed query → `match_chunks` → `fetch` ARK Responses API → 手写 SSE → UIMessageStream |
 | `/auth/callback` | Route Handler GET | 邮箱验证 `code` 换 session |
 | `/auth/signout` | Route Handler POST | 登出 → 跳 `/` |
 
@@ -78,8 +78,8 @@ npx vercel --prod         # 直接部署到生产
 
 1. 浏览器 `/chat` 是 Client Component (`useChat`)，POST `/api/chat` 发消息
 2. Route Handler 做 3 步: `embedQuery(question)` → RPC `match_chunks` 拿 top-5 → 拼到 system prompt
-3. `streamText` 调 DashScope `qwen-plus`，流回 `UIMessage` 给客户端
-4. **必须用 `lib/supabase/server.ts`** (走 RLS, user 自动隔离); embed 走 ARK (`lib/embedding.ts`), LLM 走 DashScope
+3. 直接 `fetch` ARK `/api/v3/responses` (OpenAI Responses API 兼容) 拿 SSE 流，手写解析 `response.output_text.delta` → 写 `UIMessageStream` chunk (`text-start` / `text-delta` / `text-end`) → 流回客户端
+4. **必须用 `lib/supabase/server.ts`** (走 RLS, user 自动隔离); embed 和 LLM 都走 ARK (`lib/embedding.ts` + `app/api/chat/route.ts`)，共用 `ARK_API_KEY`
 5. 没装 `@ai-sdk/react` 的话 `useChat` 不可用
 
 ## 环境变量

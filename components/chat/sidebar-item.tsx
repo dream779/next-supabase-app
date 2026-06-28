@@ -60,6 +60,7 @@ export function SidebarItem({ id, title, formattedTime }: Props) {
   async function handleDelete() {
     setConfirmDelete(false)
     await deleteConversation(id)
+    window.dispatchEvent(new CustomEvent('conversation-deleted', { detail: { id } }))
     sidebar?.setOpen(false)
     if (isActive) router.push('/chat')
   }

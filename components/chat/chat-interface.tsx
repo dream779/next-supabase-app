@@ -3,9 +3,9 @@
 import { DefaultChatTransport } from 'ai'
 import { useChat } from '@ai-sdk/react'
 import { Streamdown } from 'streamdown'
-import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import type { UIMessage } from 'ai'
+import { truncateTitle, latestUserText } from '@/lib/chat-helpers'
 
 type Props = {
   conversationId?: string | null
@@ -30,9 +30,8 @@ export function ChatInterface({
   initialMessages = [],
   isAuthenticated = true,
 }: Props) {
-  const router = useRouter()
   const [input, setInput] = useState('')
-  const newConvIdRef = useRef<string | null>(null)
+  const [newConvId, setNewConvId] = useState<string | null>(null)
   const { messages, sendMessage, status } = useChat({
     id: conversationId ?? 'new',
     messages: initialMessages,
@@ -42,22 +41,26 @@ export function ChatInterface({
     }),
     onData: (dataPart) => {
       if (dataPart.type === 'data-conversation-created') {
-        newConvIdRef.current = (dataPart.data as { id: string }).id
+        setNewConvId((dataPart.data as { id: string }).id)
       }
-    },
-    onError: (err) => {
-      console.error('[chat] error:', err)
     },
   })
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // 首轮回复完成后：静默改 URL + 派发本地事件让侧边栏手动追加一条
+  // （不走 router.refresh / router.replace，避免触发 loading.tsx 和 page 重挂起）
   useEffect(() => {
     if (status !== 'ready') return
-    if (conversationId) return
-    const id = newConvIdRef.current
-    if (!id) return
-    router.replace(`/chat/${id}`)
-  }, [status, conversationId, router])
+    if (conversationId || !newConvId) return
+
+    const title = truncateTitle(latestUserText(messages))
+    window.history.replaceState({}, '', `/chat/${newConvId}`)
+    window.dispatchEvent(
+      new CustomEvent('conversation-created', {
+        detail: { id: newConvId, title, updated_at: new Date().toISOString() },
+      }),
+    )
+  }, [status, newConvId, conversationId, messages])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
