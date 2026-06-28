@@ -2,6 +2,7 @@
 
 import { DefaultChatTransport } from 'ai'
 import { useChat } from '@ai-sdk/react'
+import { Streamdown } from 'streamdown'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import type { UIMessage } from 'ai'
@@ -93,7 +94,17 @@ export function ChatInterface({
                       : 'bg-gray-100/80 text-gray-900'
                   }`}
                 >
-                  {text}
+                  {m.role === 'user' ? (
+                    <p className="m-0 whitespace-pre-wrap">{text}</p>
+                  ) : (
+                    <Streamdown
+                      animated
+                      isAnimating={isStreaming}
+                      parseIncompleteMarkdown
+                    >
+                      {text}
+                    </Streamdown>
+                  )}
                 </div>
               </div>
             )
