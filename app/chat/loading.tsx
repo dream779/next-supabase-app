@@ -3,10 +3,13 @@ export default function ChatLoading() {
     <main className="flex-1 min-w-0 h-full">
       <div className="flex flex-col h-full bg-background">
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-            <div className="text-center text-gray-400 mt-24">
-              <p className="text-base">开始向你的知识库提问吧</p>
+          <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="size-2.5 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.3s]" />
+              <span className="size-2.5 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.15s]" />
+              <span className="size-2.5 rounded-full bg-gray-400 animate-bounce" />
             </div>
+            <p className="text-sm text-gray-400">正在加载消息记录...</p>
           </div>
         </div>
         <div className="border-t bg-background">
